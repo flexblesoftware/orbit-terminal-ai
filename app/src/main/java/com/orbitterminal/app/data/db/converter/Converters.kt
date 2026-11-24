@@ -8,10 +8,4 @@ class Converters {
 
     @TypeConverter
     fun toStringList(value: String?): List<String>? = value?.split(",")?.filter { it.isNotEmpty() }
-
-    @TypeConverter
-    fun fromLongNullable(value: Long?): Long = value ?: -1L
-
-    @TypeConverter
-    fun toLongNullable(value: Long): Long? = if (value == -1L) null else value
 }
