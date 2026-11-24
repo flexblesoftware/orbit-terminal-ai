@@ -57,7 +57,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             SecretKeyInput("OpenAI API Key", openAiKey) { openAiKey = it; viewModel.saveKey(EncryptedKeyStorage.KEY_OPENAI_API, it) }
 
             Spacer(modifier = Modifier.height(24.dp))
-            Divider()
+            HorizontalDivider()
             Spacer(modifier = Modifier.height(16.dp))
 
             Text("GitHub Integration", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
@@ -68,7 +68,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-            Divider()
+            HorizontalDivider()
             Spacer(modifier = Modifier.height(16.dp))
 
             Text("Appearance", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
@@ -89,7 +89,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             )
 
             Spacer(modifier = Modifier.height(24.dp))
-            Divider()
+            HorizontalDivider()
             Spacer(modifier = Modifier.height(16.dp))
 
             Text("Danger Zone", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.error)
@@ -105,7 +105,7 @@ fun SettingsScreen(viewModel: SettingsViewModel = hiltViewModel()) {
             }
 
             Spacer(modifier = Modifier.height(24.dp))
-            Divider()
+            HorizontalDivider()
             Spacer(modifier = Modifier.height(16.dp))
 
             Text("About", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
