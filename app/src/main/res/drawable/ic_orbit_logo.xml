@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Orbit circle -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#7C5CFC"
+        android:strokeWidth="4"
+        android:pathData="M54,54 m-30,0 a30,30 0 1,0 60,0 a30,30 0 1,0 -60,0" />
+    <!-- Inner planet -->
+    <path
+        android:fillColor="#7C5CFC"
+        android:pathData="M54,54 m-10,0 a10,10 0 1,0 20,0 a10,10 0 1,0 -20,0" />
+    <!-- Orbit ring ellipse -->
+    <path
+        android:fillColor="#00000000"
+        android:strokeColor="#00D4FF"
+        android:strokeWidth="3"
+        android:pathData="M20,54 Q54,30 88,54 Q54,78 20,54" />
+    <!-- Terminal cursor blink dot -->
+    <path
+        android:fillColor="#00D4FF"
+        android:pathData="M54,46 m-3,0 a3,3 0 1,0 6,0 a3,3 0 1,0 -6,0" />
+</vector>

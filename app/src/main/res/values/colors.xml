@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="splash_bg">#0D0D0D</color>
+    <color name="orbit_primary">#7C5CFC</color>
+    <color name="orbit_secondary">#00D4FF</color>
+    <color name="orbit_surface">#1A1A2E</color>
+    <color name="orbit_background">#0D0D1A</color>
+    <color name="orbit_on_primary">#FFFFFF</color>
+    <color name="orbit_error">#FF4444</color>
+    <color name="orbit_success">#00C853</color>
+    <color name="orbit_warning">#FFB300</color>
+    <color name="terminal_bg">#0D0D0D</color>
+    <color name="terminal_text">#E0E0E0</color>
+    <color name="terminal_cursor">#7C5CFC</color>
+</resources>

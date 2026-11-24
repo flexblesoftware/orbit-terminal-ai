@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- Exclude encrypted keys and tokens from backup -->
+    <exclude domain="sharedpref" path="encrypted_prefs.xml" />
+    <exclude domain="database" path="orbit_database.db" />
+</full-backup-content>
