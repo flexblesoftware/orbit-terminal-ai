@@ -43,12 +43,14 @@ android {
                 keyAlias = props["keyAlias"] as String
                 keyPassword = props["keyPassword"] as String
             }
-            // CI: injected via environment variables from GitHub Secrets
             if (System.getenv("KEYSTORE_FILE") != null) {
-                storeFile = file(System.getenv("KEYSTORE_FILE")!!)
-                storePassword = System.getenv("KEYSTORE_PASSWORD")!!
-                keyAlias = System.getenv("KEY_ALIAS")!!
-                keyPassword = System.getenv("KEY_PASSWORD")!!
+                val ks = file(System.getenv("KEYSTORE_FILE")!!)
+                if (ks.exists()) {
+                    storeFile = ks
+                    storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
+                    keyAlias = System.getenv("KEY_ALIAS") ?: ""
+                    keyPassword = System.getenv("KEY_PASSWORD") ?: ""
+                }
             }
         }
     }
@@ -61,7 +63,12 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            signingConfig = signingConfigs.getByName("release")
+            val releaseSigning = signingConfigs.getByName("release")
+            signingConfig = if (releaseSigning.storeFile != null && releaseSigning.storeFile!!.exists()) {
+                releaseSigning
+            } else {
+                signingConfigs.getByName("debug")
+            }
         }
         debug {
             applicationIdSuffix = ".debug"
@@ -88,7 +95,6 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
         jniLibs {
-            // Keep proot and other native libs for arm64-v8a only
             keepDebugSymbols += "**/arm64-v8a/*.so"
         }
     }
