@@ -1,13 +1,16 @@
 package com.orbitterminal.app.data.terminal
 
+import android.content.Context
 import com.orbitterminal.app.data.db.dao.TerminalOutputDao
 import com.orbitterminal.app.data.db.dao.TerminalSessionDao
 import com.orbitterminal.app.data.db.entity.TerminalOutputEntity
 import com.orbitterminal.app.data.db.entity.TerminalSessionEntity
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import timber.log.Timber
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.util.*
@@ -16,6 +19,7 @@ import javax.inject.Singleton
 
 @Singleton
 class TerminalController @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val envManager: LinuxEnvironmentManager,
     private val sessionDao: TerminalSessionDao,
     private val outputDao: TerminalOutputDao
@@ -40,20 +44,32 @@ class TerminalController @Inject constructor(
 
     suspend fun createSession(title: String? = null, workingDir: String = "/root"): TerminalSession =
         withContext(Dispatchers.IO) {
-            if (!envManager.isEnvironmentReady()) {
-                envManager.startSetup()
-            }
-
             val id = UUID.randomUUID().toString()
             val name = title ?: "Tab ${_sessions.value.size + 1}"
 
-            val proot = ProotProcess(
-                prootBinary = envManager.prootBinary,
-                rootfsDir = envManager.rootfsDir,
-                homeDir = envManager.homeDir,
-                workingDir = workingDir
-            )
-            val process = proot.start()
+            val process: Process = try {
+                if (envManager.isEnvironmentReady()) {
+                    val proot = ProotProcess(
+                        prootBinary = envManager.prootBinary,
+                        rootfsDir = envManager.rootfsDir,
+                        homeDir = envManager.homeDir,
+                        workingDir = workingDir
+                    )
+                    proot.start()
+                } else {
+                    Timber.d("PRoot Debian not ready, starting local /system/bin/sh")
+                    ProcessBuilder("/system/bin/sh")
+                        .directory(context.filesDir)
+                        .redirectErrorStream(true)
+                        .start()
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to start proot, falling back to /system/bin/sh")
+                ProcessBuilder("/system/bin/sh")
+                    .directory(context.filesDir)
+                    .redirectErrorStream(true)
+                    .start()
+            }
 
             val session = TerminalSession(
                 id = id,
@@ -64,13 +80,17 @@ class TerminalController @Inject constructor(
 
             startOutputReader(session)
 
-            sessionDao.insertSession(
-                TerminalSessionEntity(
-                    id = id,
-                    name = name,
-                    workingDirectory = workingDir
+            try {
+                sessionDao.insertSession(
+                    TerminalSessionEntity(
+                        id = id,
+                        name = name,
+                        workingDirectory = workingDir
+                    )
                 )
-            )
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to record session in DB")
+            }
 
             _sessions.value = _sessions.value + session
             _activeSessionId.value = id
@@ -88,13 +108,15 @@ class TerminalController @Inject constructor(
                     if (read > 0) {
                         val text = String(buffer, 0, read)
                         session.appendOutput(text)
-                        outputDao.insertOutput(
-                            TerminalOutputEntity(
-                                sessionId = session.id,
-                                output = text,
-                                outputType = "stdout"
+                        try {
+                            outputDao.insertOutput(
+                                TerminalOutputEntity(
+                                    sessionId = session.id,
+                                    output = text,
+                                    outputType = "stdout"
+                                )
                             )
-                        )
+                        } catch (_: Exception) {}
                     } else if (read == -1) break
                 } catch (_: Exception) {
                     break
@@ -140,7 +162,11 @@ class TerminalController @Inject constructor(
         if (_activeSessionId.value == id) {
             _activeSessionId.value = _sessions.value.lastOrNull()?.id
         }
-        scope.launch { sessionDao.deleteSession(id) }
+        scope.launch {
+            try {
+                sessionDao.deleteSession(id)
+            } catch (_: Exception) {}
+        }
     }
 
     fun renameSession(id: String, newName: String) {
@@ -148,6 +174,10 @@ class TerminalController @Inject constructor(
             if (it.id == id) it.copy(title = newName) else it
         }
         _sessions.value = updated
-        scope.launch { sessionDao.renameSession(id, newName) }
+        scope.launch {
+            try {
+                sessionDao.renameSession(id, newName)
+            } catch (_: Exception) {}
+        }
     }
 }
