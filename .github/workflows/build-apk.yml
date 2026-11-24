@@ -28,62 +28,70 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Ensure Gradle Wrapper Exists
+      - name: Build Application and Run Tests
+        id: build_step
         run: |
+          mkdir -p /tmp/build_diagnostics
+          exec > >(tee -a /tmp/build_diagnostics/run.log) 2>&1
+          set -e
+
+          echo "=== 1. Environment Info ==="
+          java -version
+          echo "ANDROID_HOME: $ANDROID_HOME"
+
+          echo "=== 2. Setup Gradle Wrapper ==="
           mkdir -p gradle/wrapper
-          if [ ! -f gradle/wrapper/gradle-wrapper.jar ] || [ ! -s gradle/wrapper/gradle-wrapper.jar ]; then
-            echo "Downloading official gradle-wrapper.jar..."
+          if [ ! -s gradle/wrapper/gradle-wrapper.jar ]; then
+            echo "Downloading gradle-wrapper.jar..."
             curl -sLo gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/main/gradle/wrapper/gradle-wrapper.jar
-            git config user.name "github-actions[bot]"
-            git config user.email "github-actions[bot]@users.noreply.github.com"
-            git add gradle/wrapper/gradle-wrapper.jar
-            git commit -m "chore: add gradle-wrapper.jar [skip ci]" || true
-            git push origin main || true
           fi
           chmod +x gradlew
+          ls -la gradle/wrapper/
           ./gradlew --version
 
-      - name: Accept Android Licenses
-        run: |
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses 2>/dev/null || true
-
-      - name: Setup Signing Keystore
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        run: |
+          echo "=== 3. Setup Keystore ==="
           mkdir -p keystore
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 --decode > keystore/release.jks
-            echo "Release keystore decoded from secrets."
+          if [ -n "${{ secrets.KEYSTORE_BASE64 }}" ]; then
+            echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > keystore/release.jks
+            echo "Decoded keystore from secrets."
           else
-            echo "Generating production release keystore for CI signing..."
+            echo "Generating release keystore..."
             keytool -genkeypair -v -keystore keystore/release.jks \
               -alias orbit-release \
               -keyalg RSA -keysize 2048 -validity 10000 \
-              -storepass orbitpass123 -keypass orbitpass123 \
+              -storepass orbitpass123 \
               -dname "CN=OrbitTerminalAI, OU=Orbit, O=FlexbleSoftware, L=SanFrancisco, S=CA, C=US"
           fi
+          ls -la keystore/
 
-      - name: Build Release APK
-        env:
-          KEYSTORE_FILE: ${{ github.workspace }}/keystore/release.jks
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD || 'orbitpass123' }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS || 'orbit-release' }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD || 'orbitpass123' }}
-        run: |
-          ./gradlew :app:assembleRelease --stacktrace 2>&1 | tee build.log
+          echo "=== 4. Accept Android Licenses ==="
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses 2>/dev/null || true
 
-      - name: Run Unit Tests
-        run: |
-          ./gradlew :app:testReleaseUnitTest --stacktrace 2>&1 | tee -a build.log
+          echo "=== 5. Assemble Release APK ==="
+          export KEYSTORE_FILE="${{ github.workspace }}/keystore/release.jks"
+          export KEYSTORE_PASSWORD="orbitpass123"
+          export KEY_ALIAS="orbit-release"
+          export KEY_PASSWORD="orbitpass123"
+
+          ./gradlew :app:assembleRelease --stacktrace
+
+          echo "=== 6. Run Unit Tests ==="
+          ./gradlew :app:testReleaseUnitTest --stacktrace
+
+          echo "=== 7. Build Completed Successfully ==="
 
       - name: Capture Failure Diagnostics
         if: failure()
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          echo "=== BUILD OR TEST FAILED ==="
-          tail -n 250 build.log > build_error.txt 2>/dev/null || echo "No build.log available" > build_error.txt
+          echo "=== WORKFLOW FAILED ==="
+          DIAG_FILE="/tmp/build_diagnostics/run.log"
+          if [ -f "$DIAG_FILE" ]; then
+            tail -n 250 "$DIAG_FILE" > build_error.txt
+          else
+            echo "No log file found." > build_error.txt
+          fi
           gh issue comment 1 --body-file build_error.txt || gh issue create --title "CI Failure [$(date -u +'%H:%M:%SZ')]" --body-file build_error.txt || true
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
