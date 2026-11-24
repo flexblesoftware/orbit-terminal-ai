@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   build:
-    name: Build & Sign APK
+    name: Build & Publish Release APK
     runs-on: ubuntu-latest
 
     steps:
@@ -61,13 +61,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          if [ -f "$KEYSTORE_FILE" ]; then
-            echo "Building signed release APK..."
-            ./gradlew assembleRelease --stacktrace
-          else
-            echo "Building unsigned/assembleDebug for validation..."
-            ./gradlew assembleDebug --stacktrace
-          fi
+          ./gradlew assembleRelease --stacktrace
 
       - name: Calculate SHA-256 Checksum
         id: checksum
@@ -79,34 +73,50 @@ jobs:
             echo "SHA256=$SHA" >> $GITHUB_ENV
             echo "APK_PATH=$APK_PATH" >> $GITHUB_ENV
             echo "SHA-256: $SHA"
+          else
+            echo "Error: No APK found!"
+            exit 1
           fi
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
-        if: env.APK_PATH != ''
         with:
-          name: orbit-terminal-ai-apk
+          name: orbit-terminal-ai-v1.0.0-apk
           path: ${{ env.APK_PATH }}
-          retention-days: 14
+          retention-days: 30
 
-      - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v') && env.APK_PATH != ''
+      - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: v1.0.0
+          name: Orbit Terminal AI v1.0.0
           files: ${{ env.APK_PATH }}
+          draft: false
+          prerelease: false
           body: |
-            ## Orbit Terminal AI Release ${{ github.ref_name }}
+            ## 🚀 Orbit Terminal AI v1.0.0 (Production Release)
 
-            ### Checksum (SHA-256)
+            ### 🔐 Binary Integrity & Checksum
+            - **Target Architecture**: `arm64-v8a` (64-bit ARM)
+            - **Min Android SDK**: Android 8.0 (API 26+)
+            - **SHA-256**:
             ```
             ${{ env.SHA256 }}
             ```
 
-            ### Features:
-            - Full-featured AI Chatbot (Gemini, Groq, OpenRouter, OpenAI) with streaming and tools
-            - Built-in Debian arm64 Linux environment powered by proot
-            - Integrated CLI Agents (Antigravity CLI, Claude Code, OpenAI Codex CLI)
-            - Terminal emulator with tab management and virtual key bar
-            - In-app automatic update manager
+            ---
+
+            ### 🌟 What's New in Orbit Terminal AI:
+            - **🤖 Multi-Provider AI Chatbot**: Google Gemini, Groq, OpenRouter, and OpenAI with word-by-word streaming responses, code syntax highlighting & one-tap copy.
+            - **⚙ Autonomous Linux Tool Calling**: AI can directly run shell commands inside the Linux environment via `run_command`, inspect command outputs, fix errors, and report results in chat.
+            - **🐧 Built-in Debian arm64 Linux Environment**: Native PRoot sandboxed Debian rootfs inside app-private storage. Includes Node.js LTS, Python 3, pip, npm, git, curl, gh.
+            - **⚡ Integrated CLI Agents**:
+              - **Google Antigravity CLI**: Official browser OAuth flow with token capture and status verification.
+              - **Claude Code**: Terminal npm agent.
+              - **OpenAI Codex CLI**: Interactive terminal assistant.
+            - **💻 Tabbed Terminal Emulator**: Multi-tab sessions, virtual keys bar (Ctrl, Alt, Tab, Esc, arrows, pipes).
+            - **🔄 In-App Self Updater**: Direct GitHub Releases API integration with Android DownloadManager and FileProvider.
+            - **🛡 Encrypted Security**: Sensitive API keys and tokens encrypted with Android Keystore (AES-256-GCM).
+            - **📄 License**: GNU General Public License v3.0 (GPL-3.0).
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
