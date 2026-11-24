@@ -16,7 +16,7 @@ import com.orbitterminal.app.data.db.entity.*
         AgentTaskEntity::class
     ],
     version = 1,
-    exportSchema = true
+    exportSchema = false
 )
 @TypeConverters(Converters::class)
 abstract class OrbitDatabase : RoomDatabase() {
