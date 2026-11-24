@@ -1,1 +1,13 @@
-No build.log available
+=== 1. Environment Info ===
+openjdk version "17.0.21" 2026-10-20
+OpenJDK Runtime Environment Temurin-17.0.21+9 (build 17.0.21+9)
+OpenJDK 64-Bit Server VM Temurin-17.0.21+9 (build 17.0.21+9, mixed mode, sharing)
+ANDROID_HOME: /usr/local/lib/android/sdk
+=== 2. Setup Gradle Wrapper ===
+total 16
+drwxr-xr-x 2 runner runner 4096 Nov 24 09:57 .
+drwxr-xr-x 3 runner runner 4096 Nov 24 09:57 ..
+-rw-r--r-- 1 runner runner   14 Nov 24 09:57 gradle-wrapper.jar
+-rw-r--r-- 1 runner runner  253 Nov 24 09:57 gradle-wrapper.properties
+Error: Could not find or load main class org.gradle.wrapper.GradleWrapperMain
+Caused by: java.lang.ClassNotFoundException: org.gradle.wrapper.GradleWrapperMain
