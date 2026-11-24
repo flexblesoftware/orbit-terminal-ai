@@ -28,7 +28,7 @@ fun TerminalScreen(viewModel: TerminalViewModel = hiltViewModel()) {
     val sessions by viewModel.sessions.collectAsState()
     val activeSessionId by viewModel.activeSessionId.collectAsState()
     val activeSession = sessions.find { it.id == activeSessionId }
-    val output by activeSession?.outputHistory?.collectAsState() ?: remember { mutableStateOf("") }
+    val output by viewModel.activeSessionOutput.collectAsState(initial = "")
     var inputText by remember { mutableStateOf("") }
 
     if (setupState !is SetupState.Ready && setupState !is SetupState.Idle) {
