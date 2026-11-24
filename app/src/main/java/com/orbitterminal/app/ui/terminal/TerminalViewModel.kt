@@ -7,10 +7,12 @@ import com.orbitterminal.app.data.terminal.SetupState
 import com.orbitterminal.app.data.terminal.TerminalController
 import com.orbitterminal.app.data.terminal.TerminalSession
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
+@OptIn(ExperimentalCoroutinesApi::class)
 @HiltViewModel
 class TerminalViewModel @Inject constructor(
     private val terminalController: TerminalController,
@@ -20,6 +22,11 @@ class TerminalViewModel @Inject constructor(
     val setupState: StateFlow<SetupState> = envManager.setupState
     val sessions: StateFlow<List<TerminalSession>> = terminalController.sessions
     val activeSessionId: StateFlow<String?> = terminalController.activeSessionId
+
+    val activeSessionOutput: Flow<String> = activeSessionId.flatMapLatest { id ->
+        val currentSession = sessions.value.find { it.id == id }
+        currentSession?.outputHistory ?: flowOf("")
+    }
 
     init {
         checkAndInitialize()
