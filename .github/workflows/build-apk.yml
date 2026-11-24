@@ -28,19 +28,24 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
 
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v4
-
-      - name: Install Gradle CLI & Generate Wrapper
+      - name: Ensure Gradle Wrapper Exists
         run: |
-          echo "Downloading official Gradle 8.11.1 binary distribution..."
-          wget -q https://services.gradle.org/distributions/gradle-8.11.1-bin.zip
-          unzip -q gradle-8.11.1-bin.zip
-          export PATH="$PWD/gradle-8.11.1/bin:$PATH"
-          echo "$PWD/gradle-8.11.1/bin" >> $GITHUB_PATH
-          gradle wrapper --gradle-version 8.11.1
+          mkdir -p gradle/wrapper
+          if [ ! -f gradle/wrapper/gradle-wrapper.jar ] || [ ! -s gradle/wrapper/gradle-wrapper.jar ]; then
+            echo "Downloading official gradle-wrapper.jar..."
+            curl -sLo gradle/wrapper/gradle-wrapper.jar https://raw.githubusercontent.com/gradle/gradle/main/gradle/wrapper/gradle-wrapper.jar
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git add gradle/wrapper/gradle-wrapper.jar
+            git commit -m "chore: add gradle-wrapper.jar [skip ci]" || true
+            git push origin main || true
+          fi
           chmod +x gradlew
           ./gradlew --version
+
+      - name: Accept Android Licenses
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses 2>/dev/null || true
 
       - name: Setup Signing Keystore
         env:
