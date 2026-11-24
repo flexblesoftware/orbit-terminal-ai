@@ -17,8 +17,8 @@ android {
         applicationId = "com.orbitterminal.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
@@ -135,9 +135,6 @@ dependencies {
 
     // Splash screen
     implementation(libs.splashscreen)
-
-    // WorkManager
-    implementation(libs.work.runtime)
 
     // Biometric / Crypto
     implementation(libs.biometric)
