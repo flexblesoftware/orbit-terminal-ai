@@ -36,7 +36,7 @@ jobs:
           gradle-version: 8.11.1
 
       - name: Run Unit Tests
-        run: gradle testReleaseUnitTest --stacktrace
+        run: gradle :app:testReleaseUnitTest --stacktrace
 
       - name: Decode Keystore
         if: env.KEYSTORE_BASE64 != ''
@@ -53,7 +53,7 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          gradle assembleRelease --stacktrace
+          gradle :app:assembleRelease --stacktrace
 
       - name: Calculate SHA-256 Checksum
         id: checksum
@@ -98,7 +98,7 @@ jobs:
 
             ---
 
-            ### 🌟 What's New in Orbit Terminal AI:
+            ### 🌟 Key Features:
             - **🤖 Multi-Provider AI Chatbot**: Google Gemini, Groq, OpenRouter, and OpenAI with word-by-word streaming responses, code syntax highlighting & one-tap copy.
             - **⚙ Autonomous Linux Tool Calling**: AI can directly run shell commands inside the Linux environment via `run_command`, inspect command outputs, fix errors, and report results in chat.
             - **🐧 Built-in Debian arm64 Linux Environment**: Native PRoot sandboxed Debian rootfs inside app-private storage. Includes Node.js LTS, Python 3, pip, npm, git, curl, gh.
