@@ -199,7 +199,7 @@ fun TerminalSetupView(setupState: SetupState, onRetry: () -> Unit) {
                 when (setupState) {
                     is SetupState.Downloading -> {
                         LinearProgressIndicator(
-                            progress = setupState.progress,
+                            progress = { setupState.progress },
                             modifier = Modifier.fillMaxWidth().height(8.dp)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
