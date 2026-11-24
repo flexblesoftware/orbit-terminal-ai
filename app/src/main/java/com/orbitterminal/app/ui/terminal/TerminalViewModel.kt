@@ -10,6 +10,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import timber.log.Timber
 import javax.inject.Inject
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -34,17 +35,23 @@ class TerminalViewModel @Inject constructor(
 
     private fun checkAndInitialize() {
         viewModelScope.launch {
-            if (!envManager.isEnvironmentReady()) {
-                envManager.startSetup()
-            } else if (sessions.value.isEmpty()) {
-                terminalController.createSession("Main")
+            try {
+                if (sessions.value.isEmpty()) {
+                    terminalController.createSession("Main")
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Error initializing default terminal session")
             }
         }
     }
 
     fun startSetup() {
         viewModelScope.launch {
-            envManager.startSetup(forceDownload = true)
+            try {
+                envManager.startSetup(forceDownload = true)
+            } catch (e: Exception) {
+                Timber.e(e, "Error starting Linux setup")
+            }
         }
     }
 
@@ -54,7 +61,11 @@ class TerminalViewModel @Inject constructor(
 
     fun createSession() {
         viewModelScope.launch {
-            terminalController.createSession()
+            try {
+                terminalController.createSession()
+            } catch (e: Exception) {
+                Timber.e(e, "Error creating new terminal session")
+            }
         }
     }
 
