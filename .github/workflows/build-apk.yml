@@ -112,7 +112,12 @@ jobs:
           fi
           echo "Found APK at: $APK_FOUND"
           mkdir -p release-artifacts
-          TARGET_APK="release-artifacts/OrbitTerminalAI-v1.0.0-arm64-v8a.apk"
+          RELEASE_TAG="v1.0.1"
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            RELEASE_TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "RELEASE_TAG=$RELEASE_TAG" >> $GITHUB_ENV
+          TARGET_APK="release-artifacts/OrbitTerminalAI-${RELEASE_TAG}-arm64-v8a.apk"
           cp "$APK_FOUND" "$TARGET_APK"
           SHA=$(sha256sum "$TARGET_APK" | awk '{print $1}')
           echo "SHA256=$SHA" >> $GITHUB_ENV
@@ -122,20 +127,20 @@ jobs:
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: OrbitTerminalAI-v1.0.0-arm64-v8a
+          name: OrbitTerminalAI-${{ env.RELEASE_TAG }}-arm64-v8a
           path: ${{ env.RELEASE_APK }}
           retention-days: 30
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v1.0.0
-          name: Orbit Terminal AI v1.0.0
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: Orbit Terminal AI ${{ env.RELEASE_TAG }}
           files: ${{ env.RELEASE_APK }}
           draft: false
           prerelease: false
           body: |
-            ## 🚀 Orbit Terminal AI v1.0.0 (Production Release)
+            ## 🚀 Orbit Terminal AI ${{ env.RELEASE_TAG }} (Production Release)
 
             ### 🔐 Binary Integrity & Checksum
             - **Target Architecture**: `arm64-v8a` (64-bit ARM)
@@ -147,7 +152,16 @@ jobs:
 
             ---
 
-            ### 🌟 Key Features:
+            ### 🛠️ Stability & Crash Fixes in ${{ env.RELEASE_TAG }}:
+            - **Crash-Proof Keystore & SharedPreferences**: Auto-recovery and graceful fallback if Android Keystore throws on startup.
+            - **WorkManager Startup Conflict Resolved**: Eliminated manifest startup initialization conflicts causing instant crash on launch.
+            - **Terminal Tab Stability**: Fixed IndexOutOfBoundsException in Compose TabRow when session list is empty.
+            - **Fallback Local Shell**: Automatically falls back to `/system/bin/sh` if PRoot Debian rootfs is not yet downloaded, keeping terminal completely functional without crashing.
+            - **Chat Scroll Safety**: Safe bounds check in message list scrolling.
+
+            ---
+
+            ### 🌟 Core Features:
             - **🤖 Multi-Provider AI Chatbot**: Google Gemini, Groq, OpenRouter, and OpenAI with word-by-word streaming responses, code syntax highlighting & one-tap copy.
             - **⚙ Autonomous Linux Tool Calling**: AI can directly run shell commands inside the Linux environment via `run_command`, inspect command outputs, fix errors, and report results in chat.
             - **🐧 Built-in Debian arm64 Linux Environment**: Sandboxed Debian rootfs via native PRoot inside app-private storage. Includes Node.js LTS, Python 3, pip, npm, git, curl, gh.
