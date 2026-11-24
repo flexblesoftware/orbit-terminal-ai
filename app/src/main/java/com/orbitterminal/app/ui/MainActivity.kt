@@ -1,13 +1,11 @@
 package com.orbitterminal.app.ui
 
 import android.app.AlertDialog
-import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.viewModels
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -16,14 +14,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.compose.*
 import com.orbitterminal.app.data.agent.AntigravityLoginHandler
 import com.orbitterminal.app.data.datastore.AppSettings
+import com.orbitterminal.app.ui.agents.AgentsScreen
 import com.orbitterminal.app.ui.chat.ChatScreen
 import com.orbitterminal.app.ui.navigation.Screen
-import com.orbitterminal.app.ui.terminal.TerminalScreen
-import com.orbitterminal.app.ui.agents.AgentsScreen
+import com.orbitterminal.app.ui.onboarding.OnboardingScreen
 import com.orbitterminal.app.ui.settings.SettingsScreen
+import com.orbitterminal.app.ui.terminal.TerminalScreen
 import com.orbitterminal.app.ui.theme.OrbitTheme
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.launch
@@ -44,6 +44,7 @@ class MainActivity : ComponentActivity() {
         setContent {
             val themeMode by appSettings.themeMode.collectAsState(initial = "dark")
             val dynamicColor by appSettings.dynamicColor.collectAsState(initial = true)
+            val onboardingDone by appSettings.onboardingComplete.collectAsState(initial = false)
             val isDark = when (themeMode) {
                 "light" -> false
                 "dark" -> true
@@ -55,7 +56,17 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    OrbitMainApp(onExit = { showExitDialog() })
+                    if (!onboardingDone) {
+                        OnboardingScreen(
+                            onFinished = {
+                                lifecycleScope.launch {
+                                    appSettings.setOnboardingComplete(true)
+                                }
+                            }
+                        )
+                    } else {
+                        OrbitMainApp(onExit = { showExitDialog() })
+                    }
                 }
             }
         }
@@ -71,8 +82,7 @@ class MainActivity : ComponentActivity() {
         if (uri.scheme == "orbitterminal" && uri.host == "auth") {
             val token = uri.getQueryParameter("token") ?: uri.getQueryParameter("code")
             if (!token.isNullOrEmpty()) {
-                val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Main)
-                scope.launch {
+                lifecycleScope.launch {
                     antigravityLoginHandler.submitAuthToken(token)
                 }
             }
