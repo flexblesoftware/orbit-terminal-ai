@@ -34,23 +34,13 @@ android {
 
     signingConfigs {
         create("release") {
-            val props = Properties()
-            val propsFile = rootProject.file("keystore/release.properties")
-            if (propsFile.exists()) {
-                props.load(propsFile.inputStream())
-                storeFile = rootProject.file(props["storeFile"] as String)
-                storePassword = props["storePassword"] as String
-                keyAlias = props["keyAlias"] as String
-                keyPassword = props["keyPassword"] as String
-            }
-            if (System.getenv("KEYSTORE_FILE") != null) {
-                val ks = file(System.getenv("KEYSTORE_FILE")!!)
-                if (ks.exists()) {
-                    storeFile = ks
-                    storePassword = System.getenv("KEYSTORE_PASSWORD") ?: ""
-                    keyAlias = System.getenv("KEY_ALIAS") ?: ""
-                    keyPassword = System.getenv("KEY_PASSWORD") ?: ""
-                }
+            val ksPath = System.getenv("KEYSTORE_FILE") ?: rootProject.file("keystore/release.jks").absolutePath
+            val ks = file(ksPath)
+            if (ks.exists()) {
+                storeFile = ks
+                storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "orbitpass123"
+                keyAlias = System.getenv("KEY_ALIAS") ?: "orbit-release"
+                keyPassword = System.getenv("KEY_PASSWORD") ?: "orbitpass123"
             }
         }
     }
@@ -63,9 +53,9 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            val releaseSigning = signingConfigs.getByName("release")
-            signingConfig = if (releaseSigning.storeFile != null && releaseSigning.storeFile!!.exists()) {
-                releaseSigning
+            val relConfig = signingConfigs.getByName("release")
+            signingConfig = if (relConfig.storeFile != null && relConfig.storeFile!!.exists()) {
+                relConfig
             } else {
                 signingConfigs.getByName("debug")
             }
