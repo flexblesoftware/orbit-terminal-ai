@@ -40,8 +40,9 @@ fun ChatScreen(viewModel: ChatViewModel = hiltViewModel()) {
     val listState = rememberLazyListState()
 
     LaunchedEffect(messages.size, streamingText) {
-        if (messages.isNotEmpty() || streamingText.isNotEmpty()) {
-            listState.animateScrollToItem((messages.size).coerceAtLeast(0))
+        val totalItems = messages.size + (if (isStreaming && streamingText.isNotEmpty()) 1 else 0)
+        if (totalItems > 0) {
+            listState.animateScrollToItem(totalItems - 1)
         }
     }
 
