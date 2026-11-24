@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 jobs:
   build:
@@ -28,28 +29,29 @@ jobs:
           distribution: 'temurin'
 
       - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Accept Android Licenses & Ensure Platforms
-        run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager "platforms;android-34" "build-tools;34.0.0" || true
+        uses: android-actions/setup-android@v4
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: 8.11.1
 
-      - name: Run Unit Tests
-        run: gradle :app:testReleaseUnitTest --stacktrace
+      - name: Generate Gradle Wrapper
+        run: |
+          gradle wrapper --gradle-version 8.11.1
+          chmod +x gradlew
 
       - name: Decode Keystore
-        if: env.KEYSTORE_BASE64 != ''
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
-          mkdir -p keystore
-          echo "$KEYSTORE_BASE64" | base64 --decode > keystore/release.jks
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            mkdir -p keystore
+            echo "$KEYSTORE_BASE64" | base64 --decode > keystore/release.jks
+            echo "Keystore successfully decoded"
+          else
+            echo "No custom release keystore secret found, falling back to debug signing for release APK"
+          fi
 
       - name: Build Release APK
         env:
@@ -58,28 +60,43 @@ jobs:
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: |
-          gradle :app:assembleRelease --stacktrace
+          ./gradlew :app:assembleRelease --stacktrace 2>&1 | tee build.log
 
-      - name: Calculate SHA-256 Checksum
-        id: checksum
+      - name: Run Unit Tests
         run: |
-          APK_PATH=$(find app/build/outputs/apk/ -name "*.apk" | head -n 1)
-          if [ -n "$APK_PATH" ]; then
-            echo "Found APK at: $APK_PATH"
-            SHA=$(sha256sum "$APK_PATH" | awk '{print $1}')
-            echo "SHA256=$SHA" >> $GITHUB_ENV
-            echo "APK_PATH=$APK_PATH" >> $GITHUB_ENV
-            echo "SHA-256: $SHA"
-          else
+          ./gradlew :app:testReleaseUnitTest --stacktrace 2>&1 | tee -a build.log
+
+      - name: Post Failure Log to Issue
+        if: failure()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Build failed. Posting failure diagnostics to GitHub Issues..."
+          tail -n 120 build.log > failure_log.txt || true
+          gh issue create --title "CI Build Failure: $(date -u +'%Y-%m-%d %H:%M:%SZ')" --body-file failure_log.txt || true
+
+      - name: Locate and Prepare Release APK
+        id: prepare_apk
+        run: |
+          APK_FOUND=$(find app/build/outputs/apk/ -name "*.apk" | head -n 1)
+          if [ -z "$APK_FOUND" ]; then
             echo "Error: No APK found!"
             exit 1
           fi
+          echo "Found APK at: $APK_FOUND"
+          mkdir -p release-artifacts
+          TARGET_APK="release-artifacts/OrbitTerminalAI-v1.0.0-arm64-v8a.apk"
+          cp "$APK_FOUND" "$TARGET_APK"
+          SHA=$(sha256sum "$TARGET_APK" | awk '{print $1}')
+          echo "SHA256=$SHA" >> $GITHUB_ENV
+          echo "RELEASE_APK=$TARGET_APK" >> $GITHUB_ENV
+          echo "SHA-256 Checksum: $SHA"
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: orbit-terminal-ai-v1.0.0-apk
-          path: ${{ env.APK_PATH }}
+          name: OrbitTerminalAI-v1.0.0-arm64-v8a
+          path: ${{ env.RELEASE_APK }}
           retention-days: 30
 
       - name: Create or Update GitHub Release
@@ -87,7 +104,7 @@ jobs:
         with:
           tag_name: v1.0.0
           name: Orbit Terminal AI v1.0.0
-          files: ${{ env.APK_PATH }}
+          files: ${{ env.RELEASE_APK }}
           draft: false
           prerelease: false
           body: |
@@ -96,7 +113,7 @@ jobs:
             ### 🔐 Binary Integrity & Checksum
             - **Target Architecture**: `arm64-v8a` (64-bit ARM)
             - **Min Android SDK**: Android 8.0 (API 26+)
-            - **SHA-256**:
+            - **SHA-256 Checksum**:
             ```
             ${{ env.SHA256 }}
             ```
@@ -106,7 +123,7 @@ jobs:
             ### 🌟 Key Features:
             - **🤖 Multi-Provider AI Chatbot**: Google Gemini, Groq, OpenRouter, and OpenAI with word-by-word streaming responses, code syntax highlighting & one-tap copy.
             - **⚙ Autonomous Linux Tool Calling**: AI can directly run shell commands inside the Linux environment via `run_command`, inspect command outputs, fix errors, and report results in chat.
-            - **🐧 Built-in Debian arm64 Linux Environment**: Native PRoot sandboxed Debian rootfs inside app-private storage. Includes Node.js LTS, Python 3, pip, npm, git, curl, gh.
+            - **🐧 Built-in Debian arm64 Linux Environment**: Sandboxed Debian rootfs via native PRoot inside app-private storage. Includes Node.js LTS, Python 3, pip, npm, git, curl, gh.
             - **⚡ Integrated CLI Agents**:
               - **Google Antigravity CLI**: Official browser OAuth flow with token capture and status verification.
               - **Claude Code**: Terminal npm agent.
