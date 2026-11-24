@@ -3,11 +3,31 @@ openjdk version "17.0.21" 2026-10-20
 OpenJDK Runtime Environment Temurin-17.0.21+9 (build 17.0.21+9)
 OpenJDK 64-Bit Server VM Temurin-17.0.21+9 (build 17.0.21+9, mixed mode, sharing)
 ANDROID_HOME: /usr/local/lib/android/sdk
-=== 2. Setup Gradle Wrapper ===
-total 16
-drwxr-xr-x 2 runner runner 4096 Nov 24 09:57 .
-drwxr-xr-x 3 runner runner 4096 Nov 24 09:57 ..
--rw-r--r-- 1 runner runner   14 Nov 24 09:57 gradle-wrapper.jar
--rw-r--r-- 1 runner runner  253 Nov 24 09:57 gradle-wrapper.properties
-Error: Could not find or load main class org.gradle.wrapper.GradleWrapperMain
-Caused by: java.lang.ClassNotFoundException: org.gradle.wrapper.GradleWrapperMain
+=== 2. Download and Setup Standalone Gradle 8.11.1 ===
+Generating genuine gradle wrapper...
+
+Welcome to Gradle 8.11.1!
+
+Here are the highlights of this release:
+ - Parallel load and store for Configuration Cache
+ - Java compilation errors at the end of the build output
+ - Consolidated report for warnings and deprecations
+
+For more details see https://docs.gradle.org/8.11.1/release-notes.html
+
+Starting a Gradle Daemon (subsequent builds will be faster)
+Configuration on demand is an incubating feature.
+
+FAILURE: Build failed with an exception.
+
+* What went wrong:
+A problem occurred configuring project ':app'.
+> Conflicting configuration : 'arm64-v8a' in ndk abiFilters cannot be present when splits abi filters are set : arm64-v8a
+
+* Try:
+> Run with --stacktrace option to get the stack trace.
+> Run with --info or --debug option to get more log output.
+> Run with --scan to get full insights.
+> Get more help at https://help.gradle.org.
+
+BUILD FAILED in 53s
