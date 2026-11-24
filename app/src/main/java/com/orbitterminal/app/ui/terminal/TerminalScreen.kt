@@ -40,18 +40,23 @@ fun TerminalScreen(viewModel: TerminalViewModel = hiltViewModel()) {
         topBar = {
             TopAppBar(
                 title = {
-                    ScrollableTabRow(
-                        selectedTabIndex = sessions.indexOfFirst { it.id == activeSessionId }.coerceAtLeast(0),
-                        modifier = Modifier.fillMaxWidth(),
-                        edgePadding = 0.dp
-                    ) {
-                        sessions.forEach { s ->
-                            Tab(
-                                selected = s.id == activeSessionId,
-                                onClick = { viewModel.selectSession(s.id) },
-                                text = { Text(s.title, maxLines = 1) }
-                            )
+                    if (sessions.isNotEmpty()) {
+                        val activeIndex = sessions.indexOfFirst { it.id == activeSessionId }.coerceIn(0, sessions.size - 1)
+                        ScrollableTabRow(
+                            selectedTabIndex = activeIndex,
+                            modifier = Modifier.fillMaxWidth(),
+                            edgePadding = 0.dp
+                        ) {
+                            sessions.forEach { s ->
+                                Tab(
+                                    selected = s.id == activeSessionId,
+                                    onClick = { viewModel.selectSession(s.id) },
+                                    text = { Text(s.title, maxLines = 1) }
+                                )
+                            }
                         }
+                    } else {
+                        Text("Terminal", style = MaterialTheme.typography.titleMedium)
                     }
                 },
                 actions = {
@@ -75,7 +80,9 @@ fun TerminalScreen(viewModel: TerminalViewModel = hiltViewModel()) {
         ) {
             val scrollState = rememberScrollState()
             LaunchedEffect(output.length) {
-                scrollState.animateScrollTo(scrollState.maxValue)
+                if (output.isNotEmpty()) {
+                    scrollState.animateScrollTo(scrollState.maxValue)
+                }
             }
 
             Box(
@@ -86,7 +93,7 @@ fun TerminalScreen(viewModel: TerminalViewModel = hiltViewModel()) {
                     .padding(8.dp)
             ) {
                 Text(
-                    text = if (output.isEmpty()) "Orbit Linux (Debian arm64)\nType a command or ask the AI to run one...\n" else output,
+                    text = if (output.isEmpty()) "Orbit Linux (Debian arm64 / Shell)\nType a command or ask the AI to run one...\n" else output,
                     color = TerminalForeground,
                     fontFamily = FontFamily.Monospace,
                     fontSize = 13.sp
@@ -105,7 +112,7 @@ fun TerminalScreen(viewModel: TerminalViewModel = hiltViewModel()) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "root# ",
+                    text = "orbit# ",
                     color = MaterialTheme.colorScheme.primary,
                     fontFamily = FontFamily.Monospace,
                     fontSize = 13.sp,
@@ -127,8 +134,10 @@ fun TerminalScreen(viewModel: TerminalViewModel = hiltViewModel()) {
                 )
                 IconButton(
                     onClick = {
-                        viewModel.sendCommand(inputText)
-                        inputText = ""
+                        if (inputText.isNotBlank()) {
+                            viewModel.sendCommand(inputText)
+                            inputText = ""
+                        }
                     }
                 ) {
                     Icon(Icons.Default.Send, contentDescription = "Send", tint = MaterialTheme.colorScheme.primary)
@@ -193,7 +202,7 @@ fun TerminalSetupView(setupState: SetupState, onRetry: () -> Unit) {
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Text("Setting Up Linux Environment", style = MaterialTheme.typography.titleMedium)
+                Text("Debian arm64 Linux Environment", style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(8.dp))
 
                 when (setupState) {
@@ -216,7 +225,7 @@ fun TerminalSetupView(setupState: SetupState, onRetry: () -> Unit) {
                     is SetupState.Error -> {
                         Text(setupState.message, color = MaterialTheme.colorScheme.error)
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = onRetry) { Text("Retry") }
+                        Button(onClick = onRetry) { Text("Retry Setup") }
                     }
                     else -> {
                         CircularProgressIndicator()
